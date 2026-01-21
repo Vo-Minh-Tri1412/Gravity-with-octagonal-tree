@@ -44,3 +44,22 @@ Thumbs.db
 *.swp
 *.synctex.gz
 *.bat
+# --- Bỏ qua các file cấu hình cá nhân ---
+*.tex
+*.aux
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.blg
+*.bbl
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.glo
+*.gls

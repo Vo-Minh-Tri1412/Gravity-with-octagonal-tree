@@ -1,0 +1,39 @@
+# --- Bỏ qua các file đã biên dịch (Kết quả chạy) ---
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.a
+*.pdb
+*.ilk
+*.exp
+
+# --- Bỏ qua các thư mục Build rác ---
+# Nếu dùng Visual Studio
+Debug/
+Release/
+x64/
+x86/
+.vs/
+out/
+build/
+
+# --- Bỏ qua cấu hình riêng tư của IDE ---
+# VS Code
+.vscode/
+*.code-workspace
+
+# Visual Studio user-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# --- Bỏ qua file rác hệ điều hành ---
+.DS_Store
+Thumbs.db
+
+# --- Nếu dùng đồ họa có file ảnh tạm/log ---
+*.log
+*.tlog

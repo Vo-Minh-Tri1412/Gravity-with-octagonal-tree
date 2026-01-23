@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "gravity-simulation",
+    "version": "1.0.0",
+    "description": "N-Body Gravity Simulation with Barnes-Hut Octree Algorithm",
+    "dependencies": [
+        "glm",
+        "raylib",
+        "glad",
+        "glfw3"
+    ]
+}

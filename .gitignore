@@ -1,6 +1,8 @@
-# --- Bỏ qua các file đã biên dịch (Kết quả chạy) ---
+# === Build Outputs ===
 *.exe
 *.dll
+*.so
+*.dylib
 *.obj
 *.o
 *.lib
@@ -9,41 +11,72 @@
 *.ilk
 *.exp
 
-# --- Bỏ qua các thư mục Build rác ---
-# Nếu dùng Visual Studio
+# === Build Directories ===
+build/
+build-*/
+out/
+bin/
 Debug/
 Release/
+RelWithDebInfo/
+MinSizeRel/
 x64/
 x86/
+
+# === vcpkg (auto-installed via manifest) ===
+vcpkg_installed/
+
+# === IDE Configurations ===
+# Visual Studio
 .vs/
-out/
-build/
-
-# --- Bỏ qua cấu hình riêng tư của IDE ---
-# VS Code
-.vscode/
-*.code-workspace
-
-# Visual Studio user-specific files
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+*.vcxproj*
+*.sln
 
-# --- Bỏ qua file rác hệ điều hành ---
+# VS Code (keep useful configs)
+.vscode/*
+!.vscode/c_cpp_properties.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+*.code-workspace
+
+# JetBrains (CLion, etc.)
+.idea/
+cmake-build-*/
+
+# === CMake ===
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+!CMakePresets.json
+
+# === OS Files ===
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# --- Nếu dùng đồ họa có file ảnh tạm/log ---
+# === Logs & Temporary Files ===
 *.log
 *.tlog
-# --- Bỏ qua các file tạm thời ---
 *~
 *.tmp
-*.bat
 *.swp
+*.bak
 *.synctex.gz
-*.bat
+
+# === Python (if using build scripts) ===
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
 # --- Bỏ qua các file cấu hình cá nhân ---
 *.tex
 *.aux

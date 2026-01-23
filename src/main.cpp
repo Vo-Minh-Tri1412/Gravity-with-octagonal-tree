@@ -1,20 +1,15 @@
-#include "raylib.h"
+#include <iostream>
+#include "Physics.hpp"
+#include "Octree.hpp"
+#include "Renderer.hpp"
+#include "Galaxy.hpp"
+
 int main()
 {
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
+    std::cout << "N-Body Gravity Simulation" << std::endl;
 
-    InitWindow(screenWidth, screenHeight, "N-Body Simulation - Barnes-Hut Algorithm");
-    SetTargetFPS(60);
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("N-Body Simulation", 10, 10, 30, WHITE);
-        DrawText("Press ESC to exit", 10, 50, 20, GRAY);
-        EndDrawing();
-    }
-    CloseWindow();
+    // TODO: Initialize simulation
+    // TODO: Main loop
 
     return 0;
 }

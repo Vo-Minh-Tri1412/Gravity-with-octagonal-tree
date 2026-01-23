@@ -1,11 +1,11 @@
-#include "Renderer.hpp"
+#include "Octree.hpp"
 
-Renderer::Renderer()
+Octree::Octree()
 {
     // TODO: Implement constructor
 }
 
-Renderer::~Renderer()
+Octree::~Octree()
 {
     // TODO: Implement destructor
 }

@@ -40,7 +40,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     endif()
 elseif(MSVC)
-    add_compile_options(/W4 /O2)
+    add_compile_options(/W4)
 endif()
 
 # ==================== Dependencies ====================
@@ -48,8 +48,6 @@ find_package(OpenGL REQUIRED)
 find_package(OpenMP)
 find_package(glm CONFIG REQUIRED)
 find_package(raylib CONFIG REQUIRED)
-find_package(glad CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
 
 # ==================== Project Sources ====================
 file(GLOB_RECURSE SOURCES "src/*.cpp")
@@ -66,8 +64,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     OpenGL::GL 
     glm::glm
     raylib
-    glad::glad
-    glfw
 )
 
 if(OpenMP_CXX_FOUND)

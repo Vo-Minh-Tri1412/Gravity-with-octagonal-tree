@@ -1,0 +1,10 @@
+{
+    "name": "universe",
+    "version-string": "1.0.0",
+    "dependencies": [
+        "glm",
+        "raylib",
+        "glad",
+        "glfw3"
+    ]
+}

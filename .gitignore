@@ -18,6 +18,7 @@ x86/
 .vs/
 out/
 build/
+vcpkg_installed/
 
 # --- Bỏ qua cấu hình riêng tư của IDE ---
 # VS Code

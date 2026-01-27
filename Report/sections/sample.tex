@@ -1,0 +1,38 @@
+\section{Yêu cầu bài nộp}
+Điền thông tin họ và \textcolor{blue}{tên sinh viên và MSSV lên trang bìa (dòng 38 file title.tex)} và \textcolor{teal}{làm bài tập vào file exercise.tex}.
+Khi nộp các bạn sẽ nộp file PDF với định dạng tên như sau:
+\begin{minted}[frame=single, bgcolor=lightgray!20]{console}
+MSSV.pdf
+\end{minted}
+\noindent\textcolor{red}{\textbf{Chú ý:} Tất cả các trường hợp làm sau yêu cầu sẽ nhận điểm 0 cho bài thực hành tương ứng.}
+\section{Bài mẫu}
+\textbf{\large Đề bài:} Giả sử $S$ là một tập hữu hạn và $x \in S$ là một phần tử của $S$. Chứng minh rằng số tập
+con của $S$ có chứa $x$ bằng số tập con của $S$ không chứa $x$.
+
+\textbf{\large Lời giải:} Gọi $A$ là tập hợp các tập con của $S$ có chứa $x$ và $B$ là tập hợp các tập con của $S$ không chứa $x$. Ta xét ánh xạ
+\[
+f : A \to B \quad \text{được xác định bởi} \quad f(X) = S \setminus X,\ \forall X \in A.
+\]
+\begin{itemize}
+    \item \textbf{Chứng minh $f$ đơn ánh:} \\
+        Giả sử $f(X_1) = f(X_2)$, tức là
+        \[
+        S \setminus X_1 = S \setminus X_2
+        \]
+        Khi đó suy ra
+        \[
+        X_1 = X_2
+        \]
+        Vậy $f$ là đơn ánh.
+    \item \textbf{Chứng minh $f$ toàn ánh:} \\
+        Lấy $Y \in B$ bất kỳ. Vì $x \notin Y$ nên $x \in S \setminus Y$, nghĩa là $S \setminus Y \in A$. Ta có
+        \[
+        f(S \setminus Y) = Y
+        \]
+        Do đó $f$ là toàn ánh.
+\end{itemize}
+
+Vì $f$ là song ánh nên
+\[
+|A| = |B|
+\]

@@ -1,3 +1,8 @@
 #pragma once
 
-// Empty
+#include <glm/glm.hpp>
+
+namespace Core
+{
+
+}

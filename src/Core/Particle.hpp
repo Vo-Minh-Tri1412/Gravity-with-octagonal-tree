@@ -1,15 +1,16 @@
 #pragma once
-
 #include <glm/glm.hpp>
+struct alignas(16) Particle {
+    glm::vec3 pos;
+    float mass;    // Khối tọa độ
+    
+    glm::vec3 vel;
+    float padding1; // Khối vận tốc
+    
+    glm::vec3 acc;
+    float padding2; // Khối gia tốc
+};
+// thêm vào các padding để tối ưu tốc độ đọc CPU 
+static_assert(sizeof(Particle)) == 48; // Kiểm tra kích thước bộ nhớ của Particle đồng thời ràng buộc bộ nhớ để tối ưu hiệu năng
 
-namespace Core
-{struct Particle //cái này chi chua du lieu, ko logic 
-    {
-        glm::vec3 position;     //vi tri 
-        glm::vec3 velocity;     // chi van toc 
-        glm::vec3 acceleration; // chi gia toc 
-        float mass;             
-
-        Particle(glm::vec3 pos = glm::vec3(0.0f), float m = 1.0f)
-            :position(pos), velocity(0.0f), acceleration(0.0f), mass(m) {}};
-}
+static_assert(alignof(Particle)) == 16; // Tương tự

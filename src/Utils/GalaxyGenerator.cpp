@@ -1,81 +1,168 @@
 #include "../Core/Particle.hpp"
-#include <random>
 #include <vector>
+#include <random>
 #include <cmath>
-#include <numbers>
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 using namespace glm;
 
-namespace GalaxyGenerator {
-struct GalaxyConfig {
-    int numParticles = 1000;
-    float radius = 500.0f;
-    float coreRadius = 50.0f; // Bán kính tâm
-    float armTwist = 3.0f; // Được tính toán trong phương trình góc quay của của hạt, awmtwist càng lớn thì hạt quay càng nhiều khi ra tới rìa
-    int numArms = 4; // Số lượng xoắn ốc
-    float armSpread = 0.5f; // Độ lan tỏa của các hạt
-    float diskThickness = 10.0f; // Độ dày của vùng không gian đang xét tới
-    float coreMass = 100000.0f; // Khối lượng trung tâm hố đen
-    float G = 1.0f; // Hằng số hấp dẫn = 1 dể đơn giản hóa phép tính
-    float scaleLength = 500.0f / 3.0f; // để xác định vùng ranh giới giữa nơi có mật độ hạt cao và thấp
-    float concentrationPower = 0.5f; // Hệ số để phân phối khối lượng ở gần tâm
-    float bulgeFraction = 0.2f; // tỉ lệ hạt trong phần trung tâm thiên hà so với tổng
-    float velocityDispersion = 0.1f; // sử dụng để thêm một vận tốc ngẫu nhiên vào vận tốc cơ bản của hạt
-};
+namespace Core
+{
 
-vector<Particle> Generate(const GalaxyConfig& config) {
-    vector<Particle> particles;
-    particles.reserve(config.numParticles);              // Cấp phát trước bộ nhớ (tránh resize O(N), tối ưu cache).
-    static random_device rd;                             // Nguồn entropy thật từ phần cứng (chỉ dùng seed).
-    static mt19937 gen(rd());                            // Khởi tạo Mersenne Twister với seed từ random_device (static: chỉ khởi tạo 1 lần).
-    uniform_real_distribution<float> dist01(0.0f, 1.0f); // Phân phối đều U[0, 1) (dùng cho phân bố bán kính và chọn arm).
-    uniform_real_distribution<float> distAngle(0.0f, 2.0f * numbers::pi_v<float>); // Phân phối đều U[0, 2π) (dùng cho góc ngẫu nhiên).
-    normal_distribution<float> distNormal(0.0f, 1.0f);   // Phân phối chuẩn N(0, 1) (dùng cho nhiễu Gaussian).
-    for (int i = 0; i < config.numParticles; ++i) { 
-        Particle p;                                      // Khởi tạo một hạt trống.
-        float scaleLength = config.scaleLength;          // Lấy scale length từ config (r_d).
-        float u = dist01(gen);                           // Sinh số ngẫu nhiên u ~ U[0, 1).
-        float r = -scaleLength * log(1.0f - u + 1e-6f);  // Tính bán kính r theo Exponential Disk (Inverse Transform Sampling).
-        r = min(r, config.radius);                       // Giới hạn bán kính r không vượt quá radius tối đa của thiên hà.
-        int armIndex = static_cast<int>(dist01(gen) * config.numArms); // Chọn arm ngẫu nhiên mà hạt thuộc về.
-        float angleStep = (2.0f * numbers::pi_v<float>) / config.numArms; // Góc cách đều giữa mỗi arm (2π / N_arms).
-        float baseAngle = armIndex * angleStep;          // Góc cơ sở của arm đã chọn.
-        float spiralAngle = config.armTwist * (r / config.radius); // Góc xoắn ốc (θ_spiral ∝ r, Logarithmic Spiral).
-        float noise = distNormal(gen) * config.armSpread; // Thêm nhiễu ngẫu nhiên Gaussian (tạo độ rộng cánh tay).
-        float finalAngle = baseAngle + spiralAngle + noise; // Góc polar cuối cùng của hạt (θ_final = θ_base + θ_spiral + θ_noise).
-        p.pos.x = r * cos(finalAngle);
-        p.pos.z = r * sin(finalAngle); 
-        p.pos.y = distNormal(gen) * config.diskThickness; // Thiết lập độ cao y ~ N(0, diskThickness) (độ dày đĩa Gaussian).
+    struct GalaxyConfig
+    {
+        int totalParticles = 10000;
+        float galaxyRadius = 100.0f;        // Bán kính thiên hà
+        float coreRadius = 20.0f;           // Bán kính vùng trung tâm
+        float coreMassFraction = 0.3f;      // coreMassFraction để tính tỉ lệ khối lượng ở vùng trung tâm
+        float minMass = 0.1f;
+        float maxMass = 10.0f;
+        float maxVelocity = 5.0f;
+        unsigned int seed = random_device{}(); // như seed minecraft, mỗi seed sẽ khác nhau nhưng đều thỏa điều kiện
+    };
 
-        float distToCenter = length(p.pos);              // Tính khoảng cách thực 3D đến tâm (d = |r|).
-        float epsilon = 1.0f;                            // Hằng số Softening (ε), ngăn vận tốc vô cực tại tâm.
-        float velocityMag = sqrt((config.G * config.coreMass) / (distToCenter + epsilon)); // Tính độ lớn vận tốc Kepler (v = √(G·M / (d + ε))).
+    float densityProfile(float radius, float coreRadius, float galaxyRadius){ 
+        // Hàm tính mật độ tương đối(mật độ so với mật độ tại trung tâm)sẽ cho ra giảm dần theo bán kính
+        float x = radius / coreRadius;
+        return 1.0f / (1.0f + x * x);
+    }
+    vec3 generatePosition(float radius, mt19937& rng){ // Hàm sinh vị trí ngẫu nhiên // mt19937& rng: Là bộ sinh số ngẫu nhiên
+        uniform_real_distribution<float> dist01(0.0f, 1.0f); // dùng để sinh số ngẫu nhiên để tính góc trong tọa độ cầu ở ngay phía dưới
+        //uniform_real_distribut -> dùng để phân bối đều
+        // Sinh góc ngẫu nhiên trong không gian cầu
+        float theta = 2.0f * M_PI * dist01(rng);        
+        float phi = acos(2.0f * dist01(rng) - 1.0f); 
         
-        vec3 up(0.0f, 1.0f, 0.0f);                       // Vector trục quay (Y-axis).
-        vec3 tangent;                                    // Vector đơn vị tiếp tuyến (hướng vận tốc).
+        // Chuyển từ tọa độ cầu sang Descartes
+        float x = radius * sin(phi) * cos(theta);
+        float y = radius * sin(phi) * sin(theta);
+        float z = radius * cos(phi);
         
-        if (distToCenter < 0.01f) {                      // Xử lý trường hợp hạt quá gần tâm (bulge).
-            vec3 temp_tangent(distNormal(gen), 0.0f, distNormal(gen)); // Vận tốc ngẫu nhiên trong mặt phẳng XZ (quỹ đạo hỗn loạn).
-            tangent = normalize(temp_tangent);           // Chuẩn hóa vector vận tốc ngẫu nhiên.
-        } else {
-            tangent = normalize(cross(up, p.pos));       // Tính vector tiếp tuyến = normalize(trục quay × vị trí) (vuông góc với up và r).
+        z *= 0.1f;  // Vì thiên hà có dạng đĩa nên ban đầu từ một quả cầu chúng ta sẽ ép để buộc chúng thành một dạng đĩa phẳng
+        
+        return vec3(x, y, z);
+    }
+
+    // Sinh khối lượng dựa trên vị trí - nặng hơn ở trung tâm do ở gần trung tâm sẽ chịu áp suất lớn và các lượng vật chất lớn nên
+    // có khả năng sinh ra các vì sao lớn
+    float generateMass(float radius, const GalaxyConfig& config, mt19937& rng)
+    {
+        uniform_real_distribution<float> dist01(0.0f, 1.0f);
+        
+        float densityFactor = densityProfile(radius, config.coreRadius, config.galaxyRadius); // như trên
+
+        float avgMass = config.minMass + (config.maxMass - config.minMass) * densityFactor; //khi càng gần tâm thì khối lượng càng lớn
+
+        float variation = 0.7f + 0.6f * dist01(rng); // variation để sản sinh ra khối lượng biến thiên ngẫu nhiên từ 0.7f - 1.3f
+        float mass = avgMass * variation;   // Khối lượng hành tinh
+        
+        return max(config.minMass, min(config.maxMass, mass)); // Để đảm bảo rằng khối lượng luôn nằm trong khoảng cho phép
+    }
+
+    // Sinh vận tốc quỹ đạo dựa trên vị trí
+    vec3 generateVelocity(const vec3& position, float centralMass, const GalaxyConfig& config, mt19937& rng)
+    {
+        uniform_real_distribution<float> dist01(0.0f, 1.0f);
+        normal_distribution<float> normalDist(0.0f, 1.0f); //normal_distribution - Phân phối chuẩn để tạo độ nhiễu cho vận tốc ở phía dưới
+        
+        float radius = length(position); // hàm để tính khoảng cách từ hạt tới gốc tọa độ
+        
+        if (radius < 0.001f)
+        {
+            // Ở tâm thì vận tốc nhỏ
+            return vec3(
+                normalDist(rng) * 0.1f,
+                normalDist(rng) * 0.1f,
+                normalDist(rng) * 0.1f
+            );
         }
         
-        p.vel = tangent * velocityMag;                   // Vận tốc quỹ đạo = vector tiếp tuyến × độ lớn vận tốc.
+        float orbitalSpeed = sqrt(centralMass / radius);  // Vận tốc quỹ đạo theo công thức v = sqrt(GM/r)
         
-        float dispersion = config.velocityDispersion * velocityMag; // Tính độ lớn nhiễu vận tốc (σ = %Dispersion × |v_orbital|).
-        p.vel.x += distNormal(gen) * dispersion;         // Thêm nhiễu Gaussian N(0, σ) vào vận tốc trục X.
-        p.vel.y += distNormal(gen) * dispersion * 0.5f;  // Thêm nhiễu Gaussian N(0, 0.5σ) vào vận tốc trục Y (Anisotropic Dispersion).
-        p.vel.z += distNormal(gen) * dispersion;         // Thêm nhiễu Gaussian N(0, σ) vào vận tốc trục Z.
+        orbitalSpeed = min(orbitalSpeed, config.maxVelocity); // Giới hạn vận tốc
         
-        p.mass = 1.0f;                                   // Thiết lập khối lượng mặc định (equal-mass).
-        p.acc = vec3(0.0f, 0.0f, 0.0f);                  // Khởi tạo gia tốc bằng 0.
+        vec3 zAxis(0.0f, 0.0f, 1.0f); // vector đơn vị trục z
+        vec3 tangent = cross(zAxis, position); // vector tiếp tuyến quỹ đạo, dùng để xác định hướng vận tốc
         
-        particles.push_back(p);                          // Thêm hạt đã sinh vào vector.
+        if (length(tangent) < 0.001f) // lúc này ta thấy khi nhân hữu hướng zAxis và position, việc <0.001f xảy ra khi mà
+        // position của chúng ta có giá trị 'vector vuông góc với trục z' rất bé hay nói cách khác là posistion của hạt gần như là thẳng đứng
+        //  và song song với z, việc này sẽ gây khó khăn cho việc tính toán vận tốc tiếp tuyến của hạt 
+        {
+            tangent = cross(vec3(1.0f, 0.0f, 0.0f), position); // chúng ta sẽ thay đổi vector trục tọa độ để có thể ra được phương vận tốc
+        }
+        
+        tangent = normalize(tangent);
+        
+        // Vận tốc quỹ đạo chính
+        vec3 velocity = tangent * orbitalSpeed;
+        
+        // Thêm nhiễu ngẫu nhiên nhỏ (velocity dispersion)
+        float dispersion = 0.1f * config.maxVelocity;
+        velocity.x += normalDist(rng) * dispersion;
+        velocity.y += normalDist(rng) * dispersion;
+        velocity.z += normalDist(rng) * dispersion * 0.3f;  // Ít nhiễu hơn theo trục z
+        
+        return velocity;
     }
-    
-    return particles;                                    // Trả về vector hạt đã sinh (dùng move semantics/RVO).
-}
+
+    // Hàm chính để sinh thiên hà
+    vector<Particle> generateGalaxy(const GalaxyConfig& config = GalaxyConfig())
+    {
+        vector<Particle> particles;
+        particles.reserve(config.totalParticles); // hàm cấp phát bộ nhớ trước để chứa particles nhằm tăng hiệu suất
+
+        mt19937 rng(config.seed);
+        uniform_real_distribution<float> dist01(0.0f, 1.0f);
+        
+        // Tính tổng khối lượng
+        float totalMass = config.totalParticles * (config.minMass + config.maxMass) / 2.0f;
+        float coreMass = totalMass * config.coreMassFraction;
+        
+        int coreParticles = 0; // biến đếm hạt 
+        float accumulatedCoreMass = 0.0f; // tính tổng khối lượng vùng trung tâm
+        
+        for (int i = 0; i < config.totalParticles; i++)
+        {
+            float u = dist01(rng);// Sinh bán kính theo phân bố mật độ
+            float radius;
+            
+
+            if (u < config.coreMassFraction)
+            {
+                // Particles trong vùng core (30%)
+                radius = config.coreRadius * sqrt(u / config.coreMassFraction);
+                coreParticles++;
+            }
+            else
+            {
+                // Particles ngoài core (70%) - giảm dần theo bán kính
+                float t = (u - config.coreMassFraction) / (1.0f - config.coreMassFraction);
+                radius = config.coreRadius + (config.galaxyRadius - config.coreRadius) * pow(t, 1.5f);
+                //Xác định bán kính cho sao ở đĩa ngoài, làm cho chúng tập trung gần tâm hơn và thưa dần khi đi ra ngoài (mô phỏng mật độ giảm dần).
+
+            }
+            
+            // Sinh vị trí trong không gian 3D
+            vec3 position = generatePosition(radius, rng);
+            
+            // Sinh khối lượng dựa trên vị trí
+            float mass = generateMass(radius, config, rng);
+            
+            if (radius <= config.coreRadius)
+            {
+                accumulatedCoreMass += mass;
+            }
+            
+            // Tạo particle
+            Particle p(position, mass);
+            
+            // Sinh vận tốc quỹ đạo
+            p.velocity = generateVelocity(position, coreMass, config, rng);
+            
+            particles.push_back(p);
+        }
+        return particles;
+    }
 }

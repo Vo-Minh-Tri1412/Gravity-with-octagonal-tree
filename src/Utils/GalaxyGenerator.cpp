@@ -58,6 +58,20 @@ namespace Core
         
         return std::max(config.minMass, std::min(config.maxMass, mass)); // Để đảm bảo rằng khối lượng luôn nằm trong khoảng cho phép
     }
+    // Hàm tính tâm khối
+    glm::vec3 calculateCenterOfMass(const std::vector<Particle>& particles){
+        glm::vec3 weightedPositionSum(0.0f, 0.0f, 0.0f);
+        float totalMass = 0.0f;
+        
+        for (const Particle& p : particles){
+            weightedPositionSum += p.position * p.mass;
+            totalMass += p.mass;
+        }
+        
+        glm::vec3 centerOfMass = weightedPositionSum / totalMass;
+        
+        return centerOfMass;
+    }
 
     // Sinh vận tốc quỹ đạo dựa trên vị trí
     glm::vec3 generateVelocity(const glm::vec3& position, float centralMass, const GalaxyConfig& config, std::mt19937& rng)

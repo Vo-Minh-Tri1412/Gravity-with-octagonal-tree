@@ -1,13 +1,22 @@
 #pragma once
 #include <vector>
 #include "../Core/Particle.hpp"
-// Có thể hiểu cái này là một cái để đại diện cho các thuật toán (Brute-force, Barnes-Hut và có thể là các thuật toán khác trong tương lai)
+
 namespace Physics
 {
+    /**
+     * @brief Interface chung cho các thuật toán giải quyết bài toán N-Body.
+     */
     class ISolver
     {
     public:
         virtual ~ISolver() = default;
+
+        /**
+         * @brief Tính toán lực và cập nhật vị trí cho các hạt.
+         * @param particles Danh sách các hạt cần mô phỏng.
+         * @param dt Thời gian giữa các khung hình (Delta time).
+         */
         virtual void solve(std::vector<Core::Particle> &particles, float dt) = 0;
     };
 }

@@ -1,15 +1,28 @@
 #pragma once
-
 #include <glm/glm.hpp>
 
 namespace Core
-{struct Particle //cái này chi chua du lieu, ko logic 
+{
+    // Loại hạt — renderer dùng để quyết định cách vẽ
+    enum class ParticleType : uint8_t
     {
-        glm::vec3 position;     //vi tri 
-        glm::vec3 velocity;     // chi van toc 
-        glm::vec3 acceleration; // chi gia toc 
-        float mass;             
+        GENERIC = 0, // hạt thiên hà  → DrawPoint3D, màu theo khối lượng
+        STAR = 1,    // ngôi sao / mặt trời → sphere vàng sáng
+        PLANET = 2,  // hành tinh          → sphere màu theo khối lượng
+        MOON = 3,    // mặt trăng           → sphere xám nhỏ
+        ASTEROID = 4 // tiểu hành tinh      → DrawPoint3D xám
+    };
+
+    struct Particle
+    {
+        glm::vec3 position;
+        glm::vec3 velocity;
+        glm::vec3 acceleration;
+        float mass;
+        ParticleType type;
 
         Particle(glm::vec3 pos = glm::vec3(0.0f), float m = 1.0f)
-            :position(pos), velocity(0.0f), acceleration(0.0f), mass(m) {}};
+            : position(pos), velocity(0.0f), acceleration(0.0f),
+              mass(m), type(ParticleType::GENERIC) {}
+    };
 }

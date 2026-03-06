@@ -156,4 +156,91 @@ namespace Utils
         }
         return particles;
     }
+
+    // ===================================================
+    std::string getScenarioName(ScenarioType type)
+    {
+        switch (type)
+        {
+        case ScenarioType::GALAXY:
+            return "Galaxy  [Barnes-Hut O(N log N)]";
+        case ScenarioType::SOLAR_SYSTEM:
+            return "Solar System  [9 bodies]";
+        case ScenarioType::TWO_BODY:
+            return "Two-Body  [Earth + Moon]";
+        default:
+            return "Unknown";
+        }
+    }
+
+    // G khớp với BarnesHutSolver / BruteForceSolver
+    static constexpr float G_SIM = 6.674e-2f;
+
+    // ===================================================
+    // HỆ MẶT TRỜI
+    // ===================================================
+    std::vector<Core::Particle> generateSolarSystem()
+    {
+        std::vector<Core::Particle> particles;
+        const float Msun = 2000.0f;
+
+        // Mặt Trời tại gốc tọa độ
+        Core::Particle sun(glm::vec3(0.0f), Msun);
+        sun.type = Core::ParticleType::STAR;
+        sun.velocity = glm::vec3(0.0f);
+        particles.push_back(sun);
+
+        // {khoảng cách (units), khối lượng tương đối}
+        struct PData
+        {
+            float dist;
+            float mass;
+        };
+        std::vector<PData> planets = {
+            {20.0f, 0.05f},  // Mercury
+            {35.0f, 0.80f},  // Venus
+            {50.0f, 1.00f},  // Earth
+            {70.0f, 0.10f},  // Mars
+            {120.0f, 50.0f}, // Jupiter
+            {160.0f, 30.0f}, // Saturn
+            {210.0f, 14.0f}, // Uranus
+            {260.0f, 17.0f}, // Neptune
+        };
+
+        for (const auto &pd : planets)
+        {
+            glm::vec3 pos(pd.dist, 0.0f, 0.0f); // trên trục X
+            Core::Particle p(pos, pd.mass);
+            p.type = Core::ParticleType::PLANET;
+            // v = sqrt(G * M_sun / r), hướng +Y (vuông góc X trong mặt phẳng XY)
+            float v = std::sqrt(G_SIM * Msun / pd.dist);
+            p.velocity = glm::vec3(0.0f, v, 0.0f);
+            particles.push_back(p);
+        }
+        return particles;
+    }
+
+    // ===================================================
+    // HỆ 2 VẬT THỂ
+    // ===================================================
+    std::vector<Core::Particle> generateTwoBody()
+    {
+        std::vector<Core::Particle> particles;
+
+        // Trái Đất tại tâm
+        Core::Particle earth(glm::vec3(0.0f), 500.0f);
+        earth.type = Core::ParticleType::STAR; // render như sao (sphere lớn)
+        earth.velocity = glm::vec3(0.0f);
+        particles.push_back(earth);
+
+        // Mặt Trăng — quỹ đạo tròn quanh Trái Đất
+        const float dist = 80.0f;
+        Core::Particle moon(glm::vec3(dist, 0.0f, 0.0f), 1.0f);
+        moon.type = Core::ParticleType::MOON;
+        float v = std::sqrt(G_SIM * earth.mass / dist);
+        moon.velocity = glm::vec3(0.0f, v, 0.0f);
+        particles.push_back(moon);
+
+        return particles;
+    }
 }

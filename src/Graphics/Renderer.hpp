@@ -15,9 +15,11 @@ namespace Graphics
         bool ShouldClose() const;
 
         void BeginScene(CameraWrapper &camera);
-        void EndScene();
+        void EndScene(); // kết thúc 3D, giữ BeginDrawing còn mở
+        void EndFrame(); // đóng BeginDrawing, trình bày frame lên màn hình
 
         void RenderParticles(const std::vector<Core::Particle> &particles);
-        void RenderUI(int fps, size_t particleCount, const std::string &solverName, float physicsTime);
+        void RenderUI(int fps, size_t particleCount, const std::string &scenarioName,
+                      const std::string &solverName, float physicsTime);
     };
 }

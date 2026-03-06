@@ -1,6 +1,7 @@
 #pragma once
 #include "ISolver.hpp"
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include "../Core/Particle.hpp"
 #include "../Structure/Octree.hpp"
@@ -34,6 +35,11 @@ namespace Physics
         // Dùng để quyết định xem một node có đủ xa để coi là một điểm hay không.
         // Điều kiện: (Kích thước node / Khoảng cách) < THETA
         const float THETA = 0.5f;
+
+        // Tái sử dụng cây qua mỗi frame (reset O(1)).
+        // Tạo lại nếu số hạt thay đổi (chuyển kịch bản) để tránh pool overflow.
+        std::unique_ptr<Octree> m_tree;
+        size_t m_lastParticleCount = 0;
 
         /**
          * @brief Hàm đệ quy tính lực tác dụng lên một hạt từ một node của cây Octree

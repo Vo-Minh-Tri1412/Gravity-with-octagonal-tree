@@ -11,7 +11,6 @@
 
 int main()
 {
-    // 1. Cấu hình & Khởi tạo
     const int SCREEN_WIDTH = 1280;
     const int SCREEN_HEIGHT = 720;
 
@@ -20,60 +19,90 @@ int main()
 
     Graphics::CameraWrapper camera;
 
-    // 2. Dữ liệu (Data)
+    // ===== Kịch bản mặc định: Thiên Hà =====
+    Utils::ScenarioType currentScenario = Utils::ScenarioType::GALAXY;
     Utils::GalaxyConfig galaxyConfig;
-    galaxyConfig.totalParticles = 4000; // Số lượng hạt
-
     std::vector<Core::Particle> particles = Utils::generateGalaxy(galaxyConfig);
 
-    // 3. Hệ thống Vật lý (Physics System)
-    // Mặc định dùng Barnes-Hut
     std::unique_ptr<Physics::ISolver> solver = std::make_unique<Physics::BarnesHutSolver>();
     std::string currentSolverName = "Barnes-Hut (O(N log N))";
 
     Utils::Timer physicsTimer;
-    const float dt = 0.016f; // Delta time cố định (60 FPS)
+    const float dt = 0.016f;
 
-    // 4. Vòng lặp chính (Main Loop)
     while (!renderer.ShouldClose())
     {
         // --- INPUT ---
         camera.Update();
 
-        // [R] Reset thiên hà
+        // [1] Thiên Hà
+        if (IsKeyPressed(KEY_ONE))
+        {
+            currentScenario = Utils::ScenarioType::GALAXY;
+            particles = Utils::generateGalaxy(galaxyConfig);
+            solver = std::make_unique<Physics::BarnesHutSolver>();
+            currentSolverName = "Barnes-Hut (O(N log N))";
+        }
+        // [2] Hệ Mặt Trời
+        if (IsKeyPressed(KEY_TWO))
+        {
+            currentScenario = Utils::ScenarioType::SOLAR_SYSTEM;
+            particles = Utils::generateSolarSystem();
+            solver = std::make_unique<Physics::BruteForceSolver>();
+            currentSolverName = "Brute Force (O(N²))";
+        }
+        // [3] Hệ 2 vật thể
+        if (IsKeyPressed(KEY_THREE))
+        {
+            currentScenario = Utils::ScenarioType::TWO_BODY;
+            particles = Utils::generateTwoBody();
+            solver = std::make_unique<Physics::BruteForceSolver>();
+            currentSolverName = "Brute Force (O(N²))";
+        }
+        // [R] Reset kịch bản hiện tại
         if (IsKeyPressed(KEY_R))
         {
-            particles = Utils::generateGalaxy(galaxyConfig);
+            switch (currentScenario)
+            {
+            case Utils::ScenarioType::GALAXY:
+                particles = Utils::generateGalaxy(galaxyConfig);
+                break;
+            case Utils::ScenarioType::SOLAR_SYSTEM:
+                particles = Utils::generateSolarSystem();
+                break;
+            case Utils::ScenarioType::TWO_BODY:
+                particles = Utils::generateTwoBody();
+                break;
+            }
         }
-
-        // [B] Chuyển sang Brute Force
+        // [B] / [H] đổi solver thủ công
         if (IsKeyPressed(KEY_B))
         {
             solver = std::make_unique<Physics::BruteForceSolver>();
-            currentSolverName = "Brute Force (O(N^2))";
+            currentSolverName = "Brute Force (O(N²))";
         }
-
-        // [H] Chuyển sang Barnes-Hut
         if (IsKeyPressed(KEY_H))
         {
             solver = std::make_unique<Physics::BarnesHutSolver>();
             currentSolverName = "Barnes-Hut (O(N log N))";
         }
 
-        // --- PHYSICS UPDATE ---
+        // --- PHYSICS ---
         physicsTimer.Start();
         if (solver)
-        {
             solver->solve(particles, dt);
-        }
         physicsTimer.Stop();
 
         // --- RENDER ---
-        renderer.BeginScene(camera);
+        renderer.BeginScene(camera); // BeginDrawing + BeginMode3D
         renderer.RenderParticles(particles);
-        renderer.EndScene();
+        renderer.EndScene(); // EndMode3D (BeginDrawing vẫn còn mở)
 
-        renderer.RenderUI(GetFPS(), particles.size(), currentSolverName, physicsTimer.GetElapsedMS());
+        renderer.RenderUI(GetFPS(), particles.size(),
+                          Utils::getScenarioName(currentScenario),
+                          currentSolverName,
+                          physicsTimer.GetElapsedMS());
+        renderer.EndFrame(); // EndDrawing — trình bày frame
     }
 
     renderer.Close();

@@ -156,4 +156,108 @@ namespace Utils
         }
         return particles;
     }
+
+    // ===================================================
+    std::string getScenarioName(ScenarioType type)
+    {
+        switch (type)
+        {
+        case ScenarioType::GALAXY:
+            return "Galaxy  [Barnes-Hut O(N log N)]";
+        case ScenarioType::SOLAR_SYSTEM:
+            return "Solar System  [9 bodies]";
+        case ScenarioType::TWO_BODY:
+            return "Escape Velocity Experiment";
+        default:
+            return "Unknown";
+        }
+    }
+
+    // G khớp với BarnesHutSolver / BruteForceSolver
+    static constexpr float G_SIM = 6.674e-2f;
+
+    // ===================================================
+    // HỆ MẶT TRỜI
+    // ===================================================
+    std::vector<Core::Particle> generateSolarSystem()
+    {
+        std::vector<Core::Particle> particles;
+        const float Msun = 2000.0f;
+
+        // Mặt Trời tại gốc tọa độ
+        Core::Particle sun(glm::vec3(0.0f), Msun);
+        sun.type = Core::ParticleType::STAR;
+        sun.velocity = glm::vec3(0.0f);
+        particles.push_back(sun);
+
+        // {khoảng cách (units), khối lượng tương đối}
+        struct PData
+        {
+            float dist;
+            float mass;
+        };
+        std::vector<PData> planets = {
+            {20.0f, 0.05f},  // Mercury
+            {35.0f, 0.80f},  // Venus
+            {50.0f, 1.00f},  // Earth
+            {70.0f, 0.10f},  // Mars
+            {120.0f, 50.0f}, // Jupiter
+            {160.0f, 30.0f}, // Saturn
+            {210.0f, 14.0f}, // Uranus
+            {260.0f, 17.0f}, // Neptune
+        };
+
+        for (const auto &pd : planets)
+        {
+            glm::vec3 pos(pd.dist, 0.0f, 0.0f); // trên trục X
+            Core::Particle p(pos, pd.mass);
+            p.type = Core::ParticleType::PLANET;
+            // v = sqrt(G * M_sun / r), hướng +Y (vuông góc X trong mặt phẳng XY)
+            float v = std::sqrt(G_SIM * Msun / pd.dist);
+            p.velocity = glm::vec3(0.0f, v, 0.0f);
+            particles.push_back(p);
+        }
+        return particles;
+    }
+
+    float getEscapeVelocity(const TwoBodyConfig &cfg)
+    {
+        return std::sqrt(2.0f * G_SIM * cfg.earthMass / cfg.earthRadius);
+    }
+
+    float getCircularOrbitalSpeed(const TwoBodyConfig &cfg)
+    {
+        return std::sqrt(G_SIM * cfg.earthMass / cfg.earthRadius);
+    }
+
+    // ===================================================
+    // THÍ NGHIỆM VẬN TỐC VŨ TRỤ
+    // ===================================================
+    std::vector<Core::Particle> generateTwoBody(const TwoBodyConfig &cfg)
+    {
+        std::vector<Core::Particle> particles;
+
+        // Trái Đất tại tâm — cố định (khối lượng rất lớn)
+        Core::Particle earth(glm::vec3(0.0f), cfg.earthMass);
+        earth.type = Core::ParticleType::PLANET;
+        earth.radius = cfg.earthRadius;
+        earth.velocity = glm::vec3(0.0f);
+        particles.push_back(earth);
+
+        // Tên lửa — phóng từ bề mặt Trái Đất (trên trục X)
+        const float angleRad = cfg.launchAngleDeg * (static_cast<float>(M_PI) / 180.0f);
+        glm::vec3 launchPos(cfg.earthRadius, 0.0f, 0.0f);
+        glm::vec3 launchVel(
+            cfg.launchSpeed * std::cos(angleRad),
+            cfg.launchSpeed * std::sin(angleRad),
+            0.0f);
+
+        Core::Particle rocket(launchPos, 0.001f);
+        rocket.type = Core::ParticleType::MOON;
+        rocket.radius = 0.5f;
+        rocket.velocity = launchVel;
+        particles.push_back(rocket);
+
+        return particles;
+    }
 }

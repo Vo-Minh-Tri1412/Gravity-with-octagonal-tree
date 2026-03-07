@@ -9,47 +9,29 @@ namespace Physics
     {
         if (particles.empty())
             return;
-        // ============================================================
-        // BƯỚC 1: XÁC ĐỊNH KHÔNG GIAN (BOUNDING BOX)
-        // ============================================================
-        // Để xây dựng Octree, ta cần biết giới hạn không gian bao trùm tất cả các hạt.
-        glm::vec3 minPos = particles[0].position;
-        glm::vec3 maxPos = particles[0].position;
 
-        for (const auto &p : particles)
+        // Bounding box cố định cho toàn bộ thiên hà
+        AABB rootBounds(glm::vec3(0.0f), glm::vec3(500.0f));
+
+        // Tái dùng cây mọi frame (reset O(1)).
+        // Tạo lại nếu số hạt thay đổi — tránh pool overflow khi chuyển kịch bản.
+        if (!m_tree || particles.size() != m_lastParticleCount)
         {
-            minPos = glm::min(minPos, p.position);
-            maxPos = glm::max(maxPos, p.position);
+            m_lastParticleCount = particles.size();
+            size_t capacity = particles.size() * 9 + 1000;
+            m_tree = std::make_unique<Octree>(rootBounds, capacity);
         }
 
-        // Tính tâm và kích thước hộp
-        glm::vec3 center = (minPos + maxPos) * 0.5f;
-        glm::vec3 size = (maxPos - minPos) * 0.5f;
+        m_tree->build(particles); // reset() O(1) + rebuild
 
-        // Tìm cạnh lớn nhất để tạo hình lập phương (Octree hoạt động tốt nhất với hình lập phương)
-        float maxDim = std::max({size.x, size.y, size.z});
-
-        // Thêm một chút lề (padding) để đảm bảo hạt không nằm ngay sát biên gây lỗi
-        glm::vec3 halfSize(maxDim + 1.0f);
-
-        AABB rootBounds(center, halfSize);
-
-        // Tạo cây mới mỗi frame.
-        // Ước lượng số lượng node cần thiết (thường nhiều hơn số hạt một chút)
-        Octree tree(rootBounds, particles.size() + 2000);
-        tree.build(particles); // Hàm này đã bao gồm việc tính Mass Distribution
-        // Tính lực
-        OctreeNode *root = tree.getRoot();
+        OctreeNode *root = m_tree->getRoot();
 
         for (auto &p : particles)
         {
-            // Reset gia tốc về 0 trước khi tính khung hình mới
             p.acceleration = glm::vec3(0.0f);
-
-            // Gọi hàm đệ quy để tính tổng lực từ cây tác dụng lên hạt p
             calculateForce(p, root);
         }
-        // Sử dụng phương pháp Semi-implicit Euler (như trong BruteForceSolver)
+
         for (auto &p : particles)
         {
             p.velocity += p.acceleration * dt;
@@ -61,52 +43,46 @@ namespace Physics
     {
         // 1. Kiểm tra node rỗng hoặc không có khối lượng
         if (node == nullptr || node->totalMass <= 0.0f)
-        {
             return;
-        }
 
-        // Tính vector từ hạt p đến khối tâm của node (r = r_node - r_p)
+        // Tính vector từ hạt p đến khối tâm của node
         glm::vec3 rVec = node->centerOfMass - p.position;
         float distSq = glm::dot(rVec, rVec);
-        float dist = glm::sqrt(distSq);
 
-        // 2. Trường hợp Node là LÁ (Leaf Node)
+        // 2. Node LÁ
         if (node->isLeaf)
         {
-            // Nếu node chứa chính hạt p thì bỏ qua (hạt không tự hút chính nó)
-            if (node->particle != &p)
+            if (node->particle != &p && distSq > 0.0f)
             {
-                // Tính lực trực tiếp: F = G * m1 * m2 / r^2
-                float forceMag = G * p.mass * node->particle->mass / (distSq + EPSILON * EPSILON);
-                glm::vec3 force = forceMag * (rVec / dist);
-                p.acceleration += force / p.mass;
+                // sqrt chỉ gọi khi thực sự cần (leaf có hạt khác)
+                float invDist = 1.0f / glm::sqrt(distSq);
+                // a += G * M_other / (r² + ε²) * r̂
+                float accelMag = G * node->particle->mass / (distSq + EPSILON * EPSILON);
+                p.acceleration += accelMag * invDist * rVec;
             }
         }
-        // 3. Trường hợp Node là NHÁNH (Internal Node)
+        // 3. Node NHÁNH
         else
         {
-            // Kích thước của vùng không gian node (chiều rộng cạnh = bán kính * 2)
             float s = node->boundary.halfSize.x * 2.0f;
 
-            // Tiêu chuẩn Barnes-Hut: s / d < theta
-            // Nếu kích thước node nhỏ hơn nhiều so với khoảng cách tới nó -> Coi như 1 điểm
-            if (dist > 0.0f && (s / dist < THETA))
+            // Barnes-Hut: s/d < θ  ↔  s² < θ² * d²  (không cần sqrt)
+            if (distSq > 0.0f && (s * s < THETA * THETA * distSq))
             {
-                // XẤP XỈ: Tính lực hấp dẫn với khối tâm của toàn bộ node này
-                float forceMag = G * p.mass * node->totalMass / (distSq + EPSILON * EPSILON);
-                glm::vec3 force = forceMag * (rVec / dist);
-                p.acceleration += force / p.mass;
+                // Xấp xỉ: coi cả nhóm là một điểm
+                // sqrt chỉ gọi khi đạt tiêu chuẩn xấp xỉ
+                float invDist = 1.0f / glm::sqrt(distSq);
+                float accelMag = G * node->totalMass / (distSq + EPSILON * EPSILON);
+                p.acceleration += accelMag * invDist * rVec;
             }
             else
             {
-                // KHÔNG XẤP XỈ ĐƯỢC: Node quá gần hoặc quá to
-                // Phải đi sâu xuống các node con để tính chi tiết hơn
+                // Node quá gần hoặc quá to: đi sâu xuống con
+                // KHÔNG gọi sqrt ở đây — tiết kiệm cho phần lớn node nội
                 for (int i = 0; i < 8; ++i)
                 {
                     if (node->children[i])
-                    {
                         calculateForce(p, node->children[i]);
-                    }
                 }
             }
         }

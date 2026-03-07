@@ -43,6 +43,8 @@ private:
     LinearAllocator<OctreeNode> nodePool;
     AABB initialBounds;
     // node đầy ->chia nhỏ thành 8 con-->đẩy hạt xuống con
-    void insert(OctreeNode *node, Core::Particle *p);
+    // depth: giới hạn độ sâu để tránh đệ quy vô hạn khi 2 hạt trùng vị trí float
+    static constexpr int MAX_DEPTH = 64;
+    void insert(OctreeNode *node, Core::Particle *p, int depth = 0);
     void computeMassDistribution(OctreeNode *node);
 };

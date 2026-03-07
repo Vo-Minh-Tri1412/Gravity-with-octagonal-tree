@@ -13,8 +13,7 @@ namespace Graphics
 
     void CameraWrapper::Update()
     {
-        // Sử dụng chế độ camera orbital mặc định của Raylib
-        // Giữ chuột phải để xoay, lăn chuột để zoom
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        // CAMERA_FREE: chuột phải giữ + kéo để xoay, scroll để zoom, WASD để di chuyển
+        UpdateCamera(&camera, CAMERA_FREE);
     }
 }

@@ -116,7 +116,7 @@ namespace Graphics
             // ---- Ngôi sao / Mặt Trời / Trái Đất (STAR) ----
             case Core::ParticleType::STAR:
             {
-                float r = std::cbrt(p.mass) * 0.8f;
+                float r = p.radius > 0.0f ? p.radius : std::cbrt(p.mass) * 0.8f;
                 if (r < 3.0f)
                     r = 3.0f;
                 DrawSphere(pos, r, {255, 245, 140, 255});
@@ -126,7 +126,7 @@ namespace Graphics
             // ---- Hành tinh (PLANET) ----
             case Core::ParticleType::PLANET:
             {
-                float r = std::cbrt(p.mass) * 1.2f;
+                float r = p.radius > 0.0f ? p.radius : std::cbrt(p.mass) * 1.2f;
                 if (r < 0.8f)
                     r = 0.8f;
                 DrawSphere(pos, r, planetColor(p.mass));
@@ -135,7 +135,7 @@ namespace Graphics
             // ---- Mặt Trăng (MOON) ----
             case Core::ParticleType::MOON:
             {
-                float r = std::cbrt(p.mass) * 0.7f;
+                float r = p.radius > 0.0f ? p.radius : std::cbrt(p.mass) * 0.7f;
                 if (r < 0.4f)
                     r = 0.4f;
                 DrawSphere(pos, r, {190, 190, 200, 255});

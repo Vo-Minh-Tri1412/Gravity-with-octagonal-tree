@@ -167,7 +167,7 @@ namespace Utils
         case ScenarioType::SOLAR_SYSTEM:
             return "Solar System  [9 bodies]";
         case ScenarioType::TWO_BODY:
-            return "Two-Body  [Earth + Moon]";
+            return "Escape Velocity Experiment";
         default:
             return "Unknown";
         }
@@ -220,26 +220,43 @@ namespace Utils
         return particles;
     }
 
+    float getEscapeVelocity(const TwoBodyConfig &cfg)
+    {
+        return std::sqrt(2.0f * G_SIM * cfg.earthMass / cfg.earthRadius);
+    }
+
+    float getCircularOrbitalSpeed(const TwoBodyConfig &cfg)
+    {
+        return std::sqrt(G_SIM * cfg.earthMass / cfg.earthRadius);
+    }
+
     // ===================================================
-    // HỆ 2 VẬT THỂ
+    // THÍ NGHIỆM VẬN TỐC VŨ TRỤ
     // ===================================================
-    std::vector<Core::Particle> generateTwoBody()
+    std::vector<Core::Particle> generateTwoBody(const TwoBodyConfig &cfg)
     {
         std::vector<Core::Particle> particles;
 
-        // Trái Đất tại tâm
-        Core::Particle earth(glm::vec3(0.0f), 500.0f);
-        earth.type = Core::ParticleType::STAR; // render như sao (sphere lớn)
+        // Trái Đất tại tâm — cố định (khối lượng rất lớn)
+        Core::Particle earth(glm::vec3(0.0f), cfg.earthMass);
+        earth.type = Core::ParticleType::PLANET;
+        earth.radius = cfg.earthRadius;
         earth.velocity = glm::vec3(0.0f);
         particles.push_back(earth);
 
-        // Mặt Trăng — quỹ đạo tròn quanh Trái Đất
-        const float dist = 80.0f;
-        Core::Particle moon(glm::vec3(dist, 0.0f, 0.0f), 1.0f);
-        moon.type = Core::ParticleType::MOON;
-        float v = std::sqrt(G_SIM * earth.mass / dist);
-        moon.velocity = glm::vec3(0.0f, v, 0.0f);
-        particles.push_back(moon);
+        // Tên lửa — phóng từ bề mặt Trái Đất (trên trục X)
+        const float angleRad = cfg.launchAngleDeg * (static_cast<float>(M_PI) / 180.0f);
+        glm::vec3 launchPos(cfg.earthRadius, 0.0f, 0.0f);
+        glm::vec3 launchVel(
+            cfg.launchSpeed * std::cos(angleRad),
+            cfg.launchSpeed * std::sin(angleRad),
+            0.0f);
+
+        Core::Particle rocket(launchPos, 0.001f);
+        rocket.type = Core::ParticleType::MOON;
+        rocket.radius = 0.5f;
+        rocket.velocity = launchVel;
+        particles.push_back(rocket);
 
         return particles;
     }

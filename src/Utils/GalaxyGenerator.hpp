@@ -31,6 +31,15 @@ namespace Utils
     // ===== HỆ MẶT TRỜI =====
     std::vector<Core::Particle> generateSolarSystem();
 
-    // ===== HỆ 2 VẬT THỂ =====
-    std::vector<Core::Particle> generateTwoBody();
+    // ===== THÍ NGHIỆM VẬN TỐC VŨ TRỤ =====
+    struct TwoBodyConfig
+    {
+        float earthMass = 500.0f;     // khối lượng Trái Đất (đơn vị mô phỏng)
+        float earthRadius = 10.0f;    // bán kính Trái Đất (1 unit ≈ 637 km)
+        float launchSpeed = 2.58f;    // tốc độ phóng (~v_escape)
+        float launchAngleDeg = 90.0f; // 0° = xuyên tâm, 90° = tiếp tuyến
+    };
+    float getEscapeVelocity(const TwoBodyConfig &cfg);       // √(2GM/R)
+    float getCircularOrbitalSpeed(const TwoBodyConfig &cfg); // √(GM/R)
+    std::vector<Core::Particle> generateTwoBody(const TwoBodyConfig &cfg = TwoBodyConfig());
 }

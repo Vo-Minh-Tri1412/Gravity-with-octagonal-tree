@@ -19,10 +19,11 @@ namespace Core
         glm::vec3 velocity;
         glm::vec3 acceleration;
         float mass;
+        float radius = 0.0f; // 0 = auto from mass; >0 = explicit visual radius
         ParticleType type;
 
         Particle(glm::vec3 pos = glm::vec3(0.0f), float m = 1.0f)
             : position(pos), velocity(0.0f), acceleration(0.0f),
-              mass(m), type(ParticleType::GENERIC) {}
+              mass(m), radius(0.0f), type(ParticleType::GENERIC) {}
     };
 }

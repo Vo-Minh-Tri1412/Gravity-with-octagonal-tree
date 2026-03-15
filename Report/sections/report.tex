@@ -1,1 +1,371 @@
-% Viết nội dung báo cáo tại đây
+
+\noindent\textbf{Keywords:} Barnes--Hut algorithm, N-body simulation, Octree, gravitational simulation, spatial partitioning, hierarchical algorithms.
+\section{Introduction}
+
+The N-body problem is a classical problem in computational physics and astrophysics that studies the motion of a system of particles interacting through gravitational forces. In such systems, every particle exerts a force on every other particle, resulting in complex dynamical behavior. Simulating these interactions accurately is essential for modeling astronomical phenomena such as star clusters, planetary systems, and galaxy formation.
+
+A straightforward implementation of an N-body simulation computes gravitational forces between every pair of particles. For a system with $N$ particles, this approach requires $O(N^2)$ force calculations. While this method is simple and accurate, it becomes computationally impractical when the number of particles becomes large.
+
+To address this limitation, the Barnes--Hut algorithm was introduced as an efficient approximation technique for gravitational simulations. The Barnes--Hut method organizes particles into a hierarchical spatial data structure known as an Octree. Instead of computing interactions between every pair of particles, the algorithm approximates distant clusters of particles as a single mass located at their center of mass.
+
+By applying this approximation, the Barnes--Hut algorithm significantly reduces the number of force calculations required during each simulation step. As a result, the computational complexity decreases from $O(N^2)$ to approximately $O(N\log N)$.
+
+The goal of this project is to design and implement an efficient N-body simulation system based on the Barnes--Hut algorithm. The system utilizes an Octree structure to organize particles in three-dimensional space and applies the Barnes--Hut force approximation to accelerate gravitational computations. Through this approach, the simulation can handle a significantly larger number of particles while maintaining acceptable computational performance.
+
+\section{Related Work}
+
+The N-body problem has been widely studied in computational physics, astrophysics, and scientific computing. The most direct approach to solving this problem is the brute-force method, which computes gravitational forces between every pair of particles. Although this method produces exact results, it has a computational complexity of $O(N^2)$ and becomes impractical for large-scale simulations.
+
+To overcome this limitation, Barnes and Hut proposed the Barnes--Hut algorithm in 1986. The Barnes--Hut method introduces a hierarchical spatial partitioning technique that groups particles into regions using a tree-based structure. In three-dimensional simulations, this structure is commonly implemented as an Octree.
+
+The key idea of the Barnes--Hut algorithm is to approximate distant groups of particles as a single mass located at their center of mass. When computing gravitational forces on a particle, the algorithm determines whether a group of particles is sufficiently far away based on a threshold parameter. If the group is far enough, the entire cluster can be treated as one body, which greatly reduces the number of force computations.
+
+Another well-known approach for accelerating N-body simulations is the Fast Multipole Method (FMM), which can reduce the computational complexity to $O(N)$. However, the Fast Multipole Method is significantly more complex to implement and requires advanced mathematical techniques.
+
+Because of its balance between implementation simplicity and computational efficiency, the Barnes--Hut algorithm remains one of the most widely used techniques for large-scale N-body simulations. It is frequently used in astrophysical simulations, particle systems, and physics-based graphics applications.
+\section{System Overview}
+
+The system implemented in this project is an N-body simulation framework based on the Barnes--Hut algorithm. The primary objective of the system is to efficiently compute gravitational interactions between a large number of particles while maintaining acceptable simulation performance.
+
+The simulation begins by initializing a set of particles, each representing a celestial body with attributes such as position, velocity, and mass. These particles form the dynamic system whose motion will be computed over time.
+
+To accelerate the computation of gravitational forces, the system organizes particles using an Octree data structure. The Octree recursively subdivides the three-dimensional simulation space into smaller regions, allowing particles to be grouped according to their spatial location. This hierarchical spatial partitioning is a key component of the Barnes--Hut algorithm.
+
+After constructing the Octree, the system computes the total mass and center of mass for every node in the tree. These values are essential for the Barnes--Hut force approximation. When calculating the gravitational force on a particle, the algorithm decides whether a group of particles can be approximated as a single mass or whether the tree must be traversed further to examine smaller regions.
+
+Using this Barnes--Hut approximation strategy, the system dramatically reduces the number of required force calculations. Instead of interacting with every individual particle, distant clusters can be treated as aggregated masses.
+
+Finally, the computed forces are used to update particle velocities and positions using a numerical integration step. This process repeats for every simulation frame, producing the dynamic evolution of the particle system.
+
+Through the integration of the Barnes--Hut algorithm and the Octree spatial structure, the system achieves efficient large-scale N-body simulation with significantly improved computational scalability.
+\section{Database}
+\section{Data Structures}
+
+To efficiently simulate gravitational interactions in an N-body system, the program relies on several carefully designed data structures. When the number of particles becomes large, a naive pairwise force computation would require $O(N^2)$ operations, which quickly becomes computationally expensive.
+
+To address this issue, the system uses a spatial partitioning structure called an \textbf{Octree}, which allows the Barnes–Hut algorithm to approximate distant particle clusters and reduce the complexity to approximately $O(N\log N)$.
+
+The core components used in the implementation include:
+
+\begin{itemize}
+\item Particle – representation of a celestial body
+\item Axis-Aligned Bounding Box (AABB) – spatial region representation
+\item OctreeNode – node structure of the Octree
+\item LinearAllocator – optimized memory allocation system
+\item Octree – hierarchical spatial data structure
+\end{itemize}
+
+These structures work together to organize particles in space and accelerate the computation of gravitational forces.
+
+\subsection{Particle Representation}
+
+In an N-body simulation, each celestial object such as a star, planet, or asteroid is represented by a \textbf{Particle}. A particle stores the physical properties necessary for computing motion and gravitational interaction.
+
+Each particle contains the following attributes:
+
+\begin{itemize}
+\item \textbf{position}: the current position of the particle in three-dimensional space.
+\item \textbf{velocity}: the velocity vector describing the rate of change of position.
+\item \textbf{acceleration}: the acceleration caused by gravitational forces.
+\item \textbf{mass}: the mass of the celestial object.
+\item \textbf{radius}: the visual radius used for rendering.
+\item \textbf{type}: classification of the particle.
+\end{itemize}
+
+The particle type allows the rendering system to visually distinguish between different celestial bodies such as stars, planets, or asteroids.
+
+A simplified representation of the particle structure is shown below.
+
+\begin{lstlisting}[language=C++]
+struct Particle
+{
+    glm::vec3 position;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+    float mass;
+    float radius;
+    ParticleType type;
+};
+\end{lstlisting}
+
+All particles are stored inside a \texttt{std::vector<Particle>} container. Storing particles in a contiguous memory layout improves cache locality and increases traversal efficiency during the simulation.
+
+\subsection{Linear Allocator (Memory Pool)}
+
+During each simulation step, the Octree must be rebuilt based on the updated particle positions. This means that a large number of nodes must be allocated repeatedly.
+
+If each node were allocated using the standard \texttt{new} operator, the system would perform thousands of dynamic memory allocations per frame. This would introduce several performance issues:
+
+\begin{itemize}
+\item expensive heap allocations
+\item memory fragmentation
+\item reduced overall performance
+\end{itemize}
+
+To solve this problem, the system uses a \textbf{Linear Allocator}, which is a specialized memory pool designed for fast sequential allocations.
+
+The idea behind a Linear Allocator is simple:
+
+\begin{enumerate}
+\item Reserve a large block of memory during initialization.
+\item Allocate objects sequentially within this memory block.
+\item Maintain an index pointing to the next free location.
+\item Reset the index when the memory needs to be reused.
+\end{enumerate}
+
+Example initialization:
+
+\begin{lstlisting}[language=C++]
+explicit LinearAllocator(size_t initialCapacity = 10000)
+{
+    pool.reserve(initialCapacity);
+}
+\end{lstlisting}
+
+Allocation becomes extremely efficient:
+
+\begin{lstlisting}[language=C++]
+T* allocate(...)
+{
+    return &pool[currentIndex++];
+}
+\end{lstlisting}
+
+This operation runs in constant time $O(1)$.
+
+When rebuilding the Octree, the allocator simply resets the index:
+
+\begin{lstlisting}[language=C++]
+void reset()
+{
+    currentIndex = 0;
+}
+\end{lstlisting}
+
+This allows the entire memory block to be reused without freeing and reallocating memory.
+
+\subsection{Axis-Aligned Bounding Box (AABB)}
+
+Each node in the Octree represents a spatial region of the simulation space. This region is described using an \textbf{Axis-Aligned Bounding Box (AABB)}.
+
+An AABB is a rectangular box in three-dimensional space whose faces are aligned with the coordinate axes. This representation simplifies many spatial computations.
+
+An AABB is defined using two parameters:
+
+\begin{itemize}
+\item \textbf{center}: the center point of the box
+\item \textbf{halfSize}: half the length of the box along each axis
+\end{itemize}
+
+Example structure:
+
+\begin{lstlisting}[language=C++]
+struct AABB
+{
+    glm::vec3 center;
+    glm::vec3 halfSize;
+};
+\end{lstlisting}
+
+This representation allows efficient spatial calculations such as point containment tests and spatial subdivision.
+
+\subsubsection{Point Containment Test}
+
+To determine whether a particle belongs inside a node, the algorithm checks whether the particle position lies within the boundaries of the AABB.
+
+Mathematically, the condition can be expressed as:
+
+\[
+center_x - halfSize_x \le x \le center_x + halfSize_x
+\]
+
+\[
+center_y - halfSize_y \le y \le center_y + halfSize_y
+\]
+
+\[
+center_z - halfSize_z \le z \le center_z + halfSize_z
+\]
+
+If all three conditions are satisfied, the particle lies inside the bounding box.
+
+\subsection{Subdivision of the Node into Octants}
+
+An Octree node can initially contain at most one particle. If another particle needs to be inserted into the same node, the node must be subdivided into eight smaller regions.
+
+This process is called \textbf{subdivision}.
+
+In three-dimensional space, splitting a cube in half along each axis produces eight smaller cubes called \textbf{octants}. Each octant corresponds to a unique combination of positive and negative directions along the x, y, and z axes.
+
+\begin{center}
+\begin{tabular}{c c c c}
+Octant & X & Y & Z \\
+\hline
+0 & - & - & - \\
+1 & + & - & - \\
+2 & - & + & - \\
+3 & + & + & - \\
+4 & - & - & + \\
+5 & + & - & + \\
+6 & - & + & + \\
+7 & + & + & + \\
+\end{tabular}
+\end{center}
+
+Subdivision enables the Octree to adaptively partition space according to particle distribution.
+
+\subsection{Octree Node Structure}
+
+The fundamental building block of the Octree is the \textbf{OctreeNode} structure.
+
+Each node contains:
+
+\begin{itemize}
+\item the spatial boundary of the node
+\item pointers to its eight child nodes
+\item a particle if the node is a leaf
+\item the total mass of the node
+\item the center of mass of all particles inside the node
+\end{itemize}
+
+Example structure:
+
+\begin{lstlisting}[language=C++]
+struct OctreeNode
+{
+    AABB boundary;
+    std::array<OctreeNode*,8> children;
+    Particle* particle;
+
+    glm::vec3 centerOfMass;
+    float totalMass;
+
+    bool isLeaf;
+};
+\end{lstlisting}
+
+Initially, every node is a leaf node and does not contain any particle.
+
+\subsection{Octree Construction}
+
+The Octree is built from the list of particles using the following steps:
+
+\begin{enumerate}
+\item Reset the memory pool.
+\item Create the root node.
+\item Insert every particle into the tree.
+\item Compute the mass distribution.
+\end{enumerate}
+
+Example implementation:
+
+\begin{lstlisting}[language=C++]
+void Octree::build(std::vector<Particle>& particles)
+{
+    nodePool.reset();
+    root = nodePool.allocate(initialBounds);
+
+    for(auto& p : particles)
+        insert(root, &p);
+
+    computeMassDistribution(root);
+}
+\end{lstlisting}
+
+\subsection{Particle Insertion Algorithm}
+
+The insertion process determines where a particle should be placed in the Octree.
+
+Three cases may occur:
+
+\textbf{Case 1: Empty node}
+
+If the node does not contain a particle, the particle is stored directly inside the node.
+
+\textbf{Case 2: Node already contains a particle}
+
+The node must be subdivided into eight children. The existing particle and the new particle are then reinserted into the appropriate child nodes.
+
+\textbf{Case 3: Internal node}
+
+If the node already has children, the algorithm determines the correct octant and recursively inserts the particle into that child.
+
+\subsection{Mass Distribution Calculation}
+
+
+\subsection{Maximum Tree Depth}
+
+To prevent infinite subdivision when particles occupy nearly identical positions, the Octree has a maximum depth limit.
+
+\begin{lstlisting}[language=C++]
+static constexpr int MAX_DEPTH = 64;
+\end{lstlisting}
+
+If this depth is reached, further subdivision is prevented.
+
+\subsection{Complexity Analysis}
+
+The time complexity of the main operations is summarized below.
+
+\begin{center}
+\begin{tabular}{c c}
+Operation & Complexity \\
+\hline
+Octree Construction & $O(N\log N)$ \\
+Memory Reset & $O(1)$ \\
+Barnes-Hut Force Calculation & $O(N\log N)$
+\end{tabular}
+\end{center}
+
+Compared to the brute-force N-body simulation with complexity
+
+\[
+O(N^2)
+\]
+
+the Barnes–Hut approach significantly improves scalability when the number of particles becomes large.
+
+
+\section{Algorithms}
+
+\subsection{Problem Addressed by the Barnes--Hut Algorithm}
+\section{Implementation}
+
+The N-body simulation system was implemented in C++ with a focus on computational efficiency and clear modular design. The core objective of the implementation is to efficiently simulate gravitational interactions using the Barnes--Hut algorithm and an Octree spatial data structure.
+
+The implementation consists of several main components:
+
+\textbf{Particle System.}  
+Particles represent celestial bodies such as stars or planets. Each particle stores its physical attributes including position, velocity, acceleration, and mass. These values are updated during each simulation step based on gravitational forces computed by the Barnes--Hut algorithm.
+
+\textbf{Octree Construction.}  
+The simulation space is organized using an Octree structure. During every simulation step, the Octree is rebuilt based on the updated particle positions. Each node in the Octree represents a spatial region and may contain either a particle or a set of child nodes representing subdivided regions.
+
+\textbf{Barnes--Hut Force Computation.}  
+After the Octree is constructed, the system computes the gravitational forces acting on each particle using the Barnes--Hut approximation method. Instead of calculating forces from every particle individually, distant particle clusters are approximated using their center of mass.
+
+\textbf{Memory Management.}  
+To improve performance, a linear memory allocator is used for Octree nodes. This memory pool reduces the overhead of repeated dynamic memory allocation when rebuilding the Octree at every simulation step.
+
+\textbf{Simulation Loop.}  
+The simulation runs in a continuous loop consisting of the following stages:
+
+\begin{enumerate}
+\item Rebuild the Octree from particle positions.
+\item Compute mass distribution for all nodes.
+\item Apply the Barnes--Hut force approximation.
+\item Update particle acceleration, velocity, and position.
+\end{enumerate}
+
+This architecture ensures that the Barnes--Hut algorithm can efficiently handle large particle systems.
+\section{Experimental Setup}
+
+\section{Results}
+
+
+\section{Conclusion}
+
+\begin{thebibliography}{9}
+
+\end{thebibliography}
+

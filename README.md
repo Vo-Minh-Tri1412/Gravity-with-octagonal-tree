@@ -249,7 +249,7 @@ cd vcpkg
 ### Bước 2 — Clone dự án
 
 ```bash
-git clone <url-repo>
+git clone https://github.com/Vo-Minh-Tri1412/Gravity-with-octagonal-tree/
 cd Gravity-with-octagonal-tree
 ```
 
